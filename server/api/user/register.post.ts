@@ -1,0 +1,105 @@
+import prisma from "~/lib/prisma"
+import { uploadStreamCloudinary, uploadToCloudinary } from "~/server/db/cloudinary"
+import { createImage } from "~/server/db/image"
+import { createQrCode, generateQrCode } from "~/server/db/qrCode"
+import { createUser, getUserByEmail } from "~/server/db/user"
+
+export default defineEventHandler(async (event) => {
+  const form = await readMultipartFormData(event)
+
+  const getFieldValue = (fieldName: string, isImage: boolean) => {
+    if (isImage) {
+      const field = form?.find((field) => field.name == fieldName)?.data
+      return field
+    } else {
+      const field = form?.find((field) => field.name == fieldName)?.data.toString('utf-8')
+      return field
+    }
+  }
+  const first_name = getFieldValue('first_name', false)
+  const last_name = getFieldValue('last_name', false)
+  const email = getFieldValue('email', false)
+  const phone_number = getFieldValue('phone_number', false)
+  const position = getFieldValue('position', false)
+  const company_name = getFieldValue('company_name', false)
+  const participation_type: any = getFieldValue('participation_type', false)
+  const send_via: any = getFieldValue('send_via', false)
+  const country = getFieldValue('country', false)
+  const image = getFieldValue('image', true)
+
+  const fields = [first_name, last_name, email, phone_number, position, company_name, participation_type, send_via, country, image]
+  fields.forEach((field) => {
+    if (!field) {
+      return sendError(event, createError({ statusCode: 500, statusMessage: "Invalid params!" }))
+    }
+  })
+
+  const isValidPhoneNumber = (phoneNumber: any) => {
+    const internationalRegex = /^\+?[1-9]\d{1,14}$/;
+
+    const localRegex = /^(\d{7,15})$/;
+
+    return internationalRegex.test(phoneNumber) || localRegex.test(phoneNumber);
+  }
+
+
+  if (!isValidPhoneNumber(phone_number)) {
+    return sendError(event, createError({ statusCode: 500, statusMessage: "Phone number is not valid." }))
+  }
+
+  const availableParticipationTypes = ["exhibitor", "press", "visitor", "organizer"]
+  const isParticipation_typeAvailable = availableParticipationTypes.includes(participation_type.toLowerCase())
+  if (!isParticipation_typeAvailable) {
+    return sendError(event, createError({ statusCode: 500, statusMessage: "Participation type is not available." }))
+  }
+
+  if (send_via.toLowerCase() != 'whatsapp' && send_via.toLowerCase() != 'email') {
+    return sendError(event, createError({ statusCode: 500, statusMessage: `Send badge via ${send_via} is not available right now.` }))
+  }
+
+  if (participation_type != 'visitor') {
+    try {
+      const user_email = await getUserByEmail(email)
+
+      if (user_email) {
+        return sendError(event, createError({ statusCode: 500, statusMessage: `User already registered.` }))
+      }
+
+      const data = {
+        first_name: first_name ?? "",
+        last_name: last_name ?? "",
+        email: email ?? "",
+        company_name: company_name ?? "",
+        country: country ?? "",
+        phone_number: JSON.stringify(phone_number) ?? "",
+        position: position ?? "",
+        participation_type: participation_type.toLowerCase() ?? "",
+        send_via: send_via.toLowerCase() ?? "",
+      }
+      const qrCodeBinary = await generateQrCode(data)
+      const cldImage = await <any>uploadStreamCloudinary(image, "profile_images")
+      const cldQrcode = await uploadToCloudinary(qrCodeBinary, "qr_codes")
+
+      const user = await createUser(data)
+      await createImage({ public_id: cldImage.public_id, url: cldImage.secure_url, user_id: user.id })
+      await createQrCode({ public_id: cldQrcode.public_id, url: cldQrcode.secure_url, user_id: user.id })
+
+      return {
+        message: "User registered successfully.",
+        ok: true,
+        user
+      }
+    } catch (error: any) {
+      if (error.message) {
+        return sendError(event, createError({ statusCode: 500, statusMessage: error.message }))
+      } else if (error.statusMessage) {
+        return sendError(event, createError({ statusCode: 500, statusMessage: error.statusMessage }))
+      } else {
+        return sendError(event, createError({ statusCode: 500, statusMessage: "Internal server error." }))
+      }
+    }
+  } else {
+    return "visitor"
+  }
+
+})
