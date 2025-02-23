@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
 
     // Then, delete related QR codes
     await prisma.qrCode.deleteMany();
+    await prisma.pdfFile.deleteMany();
 
     // Now, delete users (after related data is removed)
     const deletedUsers = await prisma.user.deleteMany();

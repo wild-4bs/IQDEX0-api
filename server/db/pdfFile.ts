@@ -10,7 +10,7 @@ export const createPdfFile = async (data: any) => {
 export const getPdfByUserId = async (id: any) => {
   const file = await prisma.pdfFile.findFirst({
     where: {
-      userId: id,
+      user_id: id,
     },
   });
   return file;

@@ -25,6 +25,15 @@ enum UserStatus {
   rejected
 }
 
+model company {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  users       user[]
+  users_limit Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
 model user {
   id                 String            @id @default(auto()) @map("_id") @db.ObjectId
   first_name         String
@@ -32,6 +41,7 @@ model user {
   email              String            @unique
   company_name       String
   country            String
+  country_code       String
   phone_number       String
   position           String
   participation_type ParticipationType
@@ -39,9 +49,11 @@ model user {
   status             UserStatus        @default(pending)
   pdf_file           PdfFile[]
   image              image[]
+  qr_code            qrCode[]
+  company_id         String?           @db.ObjectId
+  company            company?          @relation(fields: [company_id], references: [id])
   created_at         DateTime          @default(now())
   updated_at         DateTime          @updatedAt
-  qr_code            qrCode[]
 }
 
 model image {

@@ -61,11 +61,28 @@ export default defineEventHandler(async (event) => {
     const mailOptions = {
       from: "amer11wild@gmail.com",
       to: user.email,
-      subject: "Your PDF document",
-      text: "Dear user, please find your PDF document attached.",
+      subject: "Your IQDEX 2025 Entry Badge",
+      text: `Hello,
+Your IQDEX 2025 entry badge is ready.
+
+Download the attached badge and show it at the entrance.
+
+📌 Note: Keep it on your phone or print it.
+
+For inquiries, contact us.
+
+IQDEX 2025 Team
+
+مرحبًا،
+باج الدخول لمعرض IQDEX 2025 جاهز.
+
+حمّل الباج المرفق وأظهره عند الدخول.
+
+📌 ملاحظة: احتفظ به على هاتفك أو اطبعه.
+`,
       attachments: [
         {
-          filename: "document.pdf",
+          filename: `${user.first_name}_${user.last_name}_iqdex2025.pdf`,
           content: pdfBuffer,
           contentType: "application/pdf",
         },
@@ -74,7 +91,7 @@ export default defineEventHandler(async (event) => {
 
     await transporter.sendMail(mailOptions);
 
-    return { message: "Email sent successfully!" };
+    return { message: "Email have been sent successfully." };
   } catch (error: any) {
     console.error("Error:", error);
     return sendError(

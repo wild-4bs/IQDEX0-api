@@ -41,14 +41,14 @@ export default defineEventHandler(async (event) => {
     }
 
     const existingPdfBytes = await fs.readFile(originFilePath);
-    const imageBytes = await fetchImage(user.image);
-    const qrCodeBytes = await fetchImage(user.qr_code);
+    const imageBytes = await fetchImage(user.image[0].url);
+    const qrCodeBytes = await fetchImage(user.qr_code[0].url);
 
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
 
-    const contentType = getContentType(user.image);
+    const contentType = getContentType(user.image[0].url);
 
     const embeddedImage =
       contentType === "png"
