@@ -43,3 +43,20 @@ export const uploadPdfFile = async (filePath: any, folder: any) => {
   });
   return response;
 };
+
+export const deleteFromCloudinary = async (public_id: string, type: string) => {
+  try {
+    if (type == "image") {
+      const result = await cloudinary().uploader.destroy(public_id);
+      return result;
+    } else if (type == "file") {
+      const result = await cloudinary().uploader.destroy(public_id, {
+        resource_type: "raw",
+      });
+      return result;
+    }
+  } catch (error) {
+    console.error("Cloudinary deletion error:", error);
+    throw new Error("Failed to delete file from Cloudinary");
+  }
+};
